@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
 import { sendMessageValidator } from '@/lib/validators/SendMessagevalidators'
 //import { gemini } from '@/lib/gemini'
-import { GeminiEmbeddings } from '../s3-upload/route'
+import { GeminiEmbeddings } from '@/lib/geminiEmbeddings'
 export const POST = async (req: NextRequest) => {
   // endpoint for asking a question to a pdf file
 try{

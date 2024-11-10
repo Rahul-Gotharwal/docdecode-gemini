@@ -4,75 +4,76 @@ import { db } from "@/db";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { getPineconeClient } from "@/lib/pinecone";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
+import { GeminiEmbeddings } from "@/lib/geminiEmbeddings";
 ///import { gemini } from "@/lib/gemini";
 //import { HuggingFaceInference } from "langchain/llms/hf";
 //import { HfInference } from "@huggingface/inference";
-import { Embeddings, EmbeddingsParams } from "langchain/embeddings/base";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AxiosError } from "axios";
+// import { Embeddings, EmbeddingsParams } from "langchain/embeddings/base";
+// import { GoogleGenerativeAI } from "@google/generative-ai";
+// import { AxiosError } from "axios";
 // import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 // import { VectorOperationsApi } from '@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch';
 // Custom Gemini Embeddings Class
-export class GeminiEmbeddings extends Embeddings {
-  private genAI: GoogleGenerativeAI;
-  private modelName: string;
+// export class GeminiEmbeddings extends Embeddings {
+//   private genAI: GoogleGenerativeAI;
+//   private modelName: string;
 
-  constructor(apiKey: string, modelName: string, params?: EmbeddingsParams) {
-    super(params || {});
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.modelName = modelName;
-  }
+//   constructor(apiKey: string, modelName: string, params?: EmbeddingsParams) {
+//     super(params || {});
+//     this.genAI = new GoogleGenerativeAI(apiKey);
+//     this.modelName = modelName;
+//   }
 
-  // Method to embed a query
-  async embedQuery(query: string): Promise<number[]> {
-    try {
-      const model = this.genAI.getGenerativeModel({ model: this.modelName });
-      const result = await model.embedContent(query);
-      const embedding = result?.embedding?.values;
-      if (!embedding) {
-        throw new Error("Failed to retrieve query embeddings.");
-      }
-      return embedding;
-    } catch (error) {
-      this.handleError(error);
-      throw new Error("Failed to generate query embeddings.");
-    }
-  }
+//   // Method to embed a query
+//   async embedQuery(query: string): Promise<number[]> {
+//     try {
+//       const model = this.genAI.getGenerativeModel({ model: this.modelName });
+//       const result = await model.embedContent(query);
+//       const embedding = result?.embedding?.values;
+//       if (!embedding) {
+//         throw new Error("Failed to retrieve query embeddings.");
+//       }
+//       return embedding;
+//     } catch (error) {
+//       this.handleError(error);
+//       throw new Error("Failed to generate query embeddings.");
+//     }
+//   }
 
-  // Method to embed multiple documents
-  async embedDocuments(documents: string[]): Promise<number[][]> {
-    try {
-      const model = this.genAI.getGenerativeModel({ model: this.modelName });
-      const embeddings: number[][] = [];
-      for (const doc of documents) {
-        const result = await model.embedContent(doc);
-        const embedding = result?.embedding?.values;
-        if (!embedding) {
-          throw new Error("Failed to retrieve document embeddings.");
-        }
-        embeddings.push(embedding);
-      }
-      console.log(embeddings)
-      return embeddings;
-    } catch (error) {
-      this.handleError(error);
-      throw new Error("Failed to generate document embeddings.");
-    }
-  }
+//   // Method to embed multiple documents
+//   async embedDocuments(documents: string[]): Promise<number[][]> {
+//     try {
+//       const model = this.genAI.getGenerativeModel({ model: this.modelName });
+//       const embeddings: number[][] = [];
+//       for (const doc of documents) {
+//         const result = await model.embedContent(doc);
+//         const embedding = result?.embedding?.values;
+//         if (!embedding) {
+//           throw new Error("Failed to retrieve document embeddings.");
+//         }
+//         embeddings.push(embedding);
+//       }
+//       console.log(embeddings)
+//       return embeddings;
+//     } catch (error) {
+//       this.handleError(error);
+//       throw new Error("Failed to generate document embeddings.");
+//     }
+//   }
 
-  // Error handling method
-  private handleError(error: any) {
-    const axiosError = error as AxiosError;
-    if (axiosError.response) {
-      console.error(
-        "Error fetching embedding from Gemini API:",
-        axiosError.response.data
-      );
-    } else {
-      console.error("Request failed:", error);
-    }
-  }
-}
+//   // Error handling method
+//   private handleError(error: any) {
+//     const axiosError = error as AxiosError;
+//     if (axiosError.response) {
+//       console.error(
+//         "Error fetching embedding from Gemini API:",
+//         axiosError.response.data
+//       );
+//     } else {
+//       console.error("Request failed:", error);
+//     }
+//   }
+// }
 
 const s3Client = new S3Client({
   region: process.env.NEXT_PUBLIC_AWS_S3_REGION || " ",
@@ -97,20 +98,20 @@ async function uploadFileToS3(file: Buffer, fileName: string): Promise<string> {
 
   return fileName;
 }
-async function upsertWithRetry(pineconeIndex:any, vectors:any, maxRetries = 5, delay = 500) {
-  let attempt = 0;
-  while (attempt < maxRetries) {
-    try {
-      await pineconeIndex.upsert({ vectors });
-      return;
-    } catch (error) {
-      console.error(`Attempt ${attempt + 1} to upsert failed:`, error);
-      attempt++;
-      if (attempt < maxRetries) await new Promise(res => setTimeout(res, delay * 2 ** attempt));
-      else throw new Error("Failed after multiple retries.");
-    }
-  }
-}
+// async function upsertWithRetry(pineconeIndex:any, vectors:any, maxRetries = 5, delay = 500) {
+//   let attempt = 0;
+//   while (attempt < maxRetries) {
+//     try {
+//       await pineconeIndex.upsert({ vectors });
+//       return;
+//     } catch (error) {
+//       console.error(`Attempt ${attempt + 1} to upsert failed:`, error);
+//       attempt++;
+//       if (attempt < maxRetries) await new Promise(res => setTimeout(res, delay * 2 ** attempt));
+//       else throw new Error("Failed after multiple retries.");
+//     }
+//   }
+// }
 
 
 // --------------this is the API for posting the data------------------//
