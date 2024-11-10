@@ -53,17 +53,21 @@ try{
   
   //const embeddings = await gemini.getEmbeddings(message); 
    // Initialize custom embeddings for user input
-   const embeddings = new GeminiEmbeddings(
-    process.env.HUGGINGFACE_API_KEY!,
-    'sentence-transformers/all-MiniLM-L6-v2'
-  );
+  //  const embeddings = new GeminiEmbeddings(
+  //   process.env.HUGGINGFACE_API_KEY!,
+  //   'sentence-transformers/all-MiniLM-L6-v2'
+  // );
   // Generate embeddings for the user message
-  const userMessageEmbedding = await embeddings.embedQuery(message);
+  const geminiEmbeddings = new GeminiEmbeddings(
+    process.env.GEMINI_API_KEY!,
+    "text-embedding-004"
+  );
+  const userMessageEmbedding = await geminiEmbeddings.embedQuery(message);
   const pinecone = await getPineconeClient()
   const pineconeIndex = pinecone.Index('vishalnewaccount')// updated name by docdecodenew , insted the docdecode , because we have to give the name of the index not organization
 //Vector Search Logic: If the Pinecone vector search remains the same, you can still use the PineconeStore and the results from the Gemini embeddings:
   const vectorStore = await PineconeStore.fromExistingIndex(
-    embeddings,
+    geminiEmbeddings,
     {
       pineconeIndex,
       namespace: file.id,
