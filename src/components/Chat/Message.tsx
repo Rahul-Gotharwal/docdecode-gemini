@@ -79,5 +79,7 @@ const Message = forwardRef<HTMLDivElement, MessageProps>(
     );
   }
 );
+// Adding display name for debugging at vercel 
+Message.displayName = "Message"
 
 export default Message;
