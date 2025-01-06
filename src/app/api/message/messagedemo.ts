@@ -6,8 +6,7 @@ import { sendMessageValidator } from "@/lib/validators/SendMessagevalidators";
 import { GeminiEmbeddings } from "@/lib/geminiEmbeddings";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-// import { Chroma } from "@langchain/community/vectorstores/chroma";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 export const POST = async (req: NextRequest) => {
   // endpoint for asking a question to a pdf file
   try {
@@ -70,48 +69,76 @@ export const POST = async (req: NextRequest) => {
     ]);
     //  console.log("Upsert Response:",upsertResponse);
     // Perform similarity search to find relevant results, based on the same fileid
-   // for streaming chunks go to the  https://v03.api.js.langchain.com/classes/_langchain_google_genai.ChatGoogleGenerativeAI.html
-    
+    // for streaming chunks go to the  https://v03.api.js.langchain.com/classes/_langchain_google_genai.ChatGoogleGenerativeAI.html
+
     const results = await index.namespace(file.id).query({
       topK: 10,
       vector: userMessageEmbedding,
       includeMetadata: true,
       includeValues: false,
     });
-    // Assuming `results.matches` contains the data structure shown above
-    console.log(results)
-    // metadata is an object we need to pass that here , by watching the api data we have
+    console.log(results);
+
     const context = results.matches
-    .map((match) => {
-      const content = match.metadata?.pageContent || "No content";
-      return `Score: ${match.score}\nContent: ${content}`;
-    })
-    .join("\n\n");
-  
-    console.log("Generated Context:", context);
-    // Step 4: Create a prompt for the AI model
-    const prompt = 
-     `Based on the following context, answer the user's question concisely.accordign to the entyered prompt
-    
-     
-     User Question: ${message}`
-   ;
-  // console.log(contextMetadata.userId)
-  // console.log(contextMetadata.userId)
+      .map((match) => {
+        const content = match.metadata?.pageContent || "No content";
+        return `Score: ${match.score}\nContent: ${content}`;
+      })
+      .join("\n\n");
 
+    // Fetch previous 6 messages from the database
+    const prevMessages = await db.message.findMany({
+      where: { fileId },
+      orderBy: { createdAt: "asc" },
+      take: 6,
+    });
 
-    // Step 5: Generate a response using Gemini
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const genratedContentNatural = await model.generateContent(prompt);
-    // https://docs.pinecone.io/guides/data/query-data
-    if (!genratedContentNatural) {
-      return new Response("Failed to generate response from Gemini AI", {
-        status: 500,
-      });
-    }
-    const assistantResponse = genratedContentNatural.response.text();
-    // Save the assistant's response to the database
+    const formattedPrevMessages = prevMessages.map((msg) => ({
+      role: msg.isUserMessage ? "user" : "assistant",
+      content: msg.text,
+    }));
+
+    // Create a prompt including context and previous messages
+    const prompt = `
+  Based on the following context and previous messages, answer the user's question concisely.
+
+  Context:
+  ${context}
+
+  Previous Messages:
+  ${formattedPrevMessages
+    .map((msg) => `${msg.role}: ${msg.content}`)
+    .join("\n")}
+
+  User Question: ${message}
+  `;
+
+    // Streaming response using ChatGoogleGenerativeAI
+    const llm = new ChatGoogleGenerativeAI({
+      model: "gemini-1.5-flash",
+      temperature: 0.7,
+      maxRetries: 2,
+      apiKey:process.env.GEMINI_API_KEY!,
+      streaming:true
+    });
+    const stream = llm.stream(prompt);
+    let assistantResponse = "";
+    const responseStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of await stream) {
+            assistantResponse += chunk.content;
+            controller.enqueue(chunk.content || ""); // Push each chunk to the stream
+          }
+          controller.close();
+        } catch (err) {
+          console.error("Streaming error:", err);
+          controller.error(err);
+        }
+      },
+    });
+
+    // Save assistant response to database after streaming
     await db.message.create({
       data: {
         text: assistantResponse,
@@ -120,28 +147,10 @@ export const POST = async (req: NextRequest) => {
         fileId,
       },
     });
-    // Save the assistant's response to the database
-    const prevMessages = await db.message.findMany({
-      where: {
-        fileId,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-      take: 6,
-    });
-    const formattedPrevMessages = prevMessages.map((msg) => ({
-      role: msg.isUserMessage ? ("user" as const) : ("assistant" as const),
-      content: msg.text,
-    }));
-    const stream = new ReadableStream({
-      async start(controller) {
-        controller.enqueue(genratedContentNatural.response.text());
-        controller.close();
-      },
-    });
 
-    return new StreamingTextResponse(stream);
+    return new StreamingTextResponse(responseStream);
+   
+   
   } catch (error) {
     console.error("Error:", error);
     return new Response("Internal Server Error", { status: 500 });

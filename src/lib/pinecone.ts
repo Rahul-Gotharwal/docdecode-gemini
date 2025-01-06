@@ -1,17 +1,15 @@
-import { PineconeClient } from '@pinecone-database/pinecone'
-export const getPineconeClient = async () => {
-  const client = new PineconeClient()
-  await client.init({
-    
-    apiKey: process.env.PINECONE_API_KEY!,
-    environment: "us-east-1-aws" // Update to match your actual environment ID
-    //environment: "aped-4627-b74a" // gcp-starter
-    //https://docdecodenew-uwth44m.svc.aped-4627-b74a.pinecone.io
-  })
-  //console.log(client)
-  return client
-
-}
+// import { PineconeClient } from '@pinecone-database/pinecone'
+// export const getPineconeClient = async () => {
+//   const client = new PineconeClient()
+//   await client.init({    
+//     apiKey: process.env.PINECONE_API_KEY!,
+//     environment: "us-east-1-aws" // Update to match your actual environment ID
+//     //environment: "aped-4627-b74a" // gcp-starter
+//     //https://docdecodenew-uwth44m.svc.aped-4627-b74a.pinecone.io
+//   })
+//   //console.log(client)
+//   return client
+// }
 // we got the environment list by the help center on the pinecone web the list is below
 // just go and create the index and crete the api key and insert them in the project
 /**

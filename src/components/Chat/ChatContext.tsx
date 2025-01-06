@@ -4,14 +4,14 @@ import { useMutation } from "@tanstack/react-query";
 import { trpc } from "@/app/_trpc/client";
 import { INFINITE_QUERY_LIMIT } from "@/config/infinite-query";
 
-type StreamResponse = {
+type StreamingTextResponse = {
   addMessage: () => void;
   message: string;
   handleInputChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   isLoading: boolean;
 };
 
-export const ChatContext = createContext<StreamResponse>({
+export const ChatContext = createContext<StreamingTextResponse>({
   addMessage: () => {},
   message: "",
   handleInputChange: () => {},
@@ -31,8 +31,11 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
   const backUpMessage = useRef(" ");
   const { mutate: sendMessage } = useMutation({
     mutationFn: async ({ message }: { message: string }) => {
-      const response = await fetch("/api/message", {
+      const response = await fetch("/api/message",{
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           fileId,
           message,

@@ -41,7 +41,7 @@ export class GeminiEmbeddings extends Embeddings {
         }
         embeddings.push(embedding);
       }
-      console.log(embeddings);
+     // console.log("Generated embeddings:", JSON.stringify(embeddings));
       return embeddings;
     } catch (error) {
       this.handleError(error);
